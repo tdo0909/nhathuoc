@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Đăng Tin Hoạt Động & Thông Báo - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li class="active"><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-bullhorn"></i></span> Đăng Tin Hoạt Động &amp; Thông Báo App</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="alertMsg"></span>
+            <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 400px;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm tin hoạt động..." oninput="renderNews()">
+                </div>
+
+                <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addNewsModal">
+                    <i class="fa-solid fa-plus me-1"></i> Đăng Tin Hoạt Động / Thông Báo
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ảnh</th>
+                            <th>Mã Tin</th>
+                            <th>Tiêu Đề Thông Báo</th>
+                            <th>Nội Dung Chi Tiết</th>
+                            <th>Phân Loại</th>
+                            <th>Thời Gian</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="newsTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">Đang tải tin hoạt động từ Firebase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<button class="app-fab" data-bs-toggle="modal" data-bs-target="#addNewsModal" title="Đăng tin mới">
+    <i class="fa-solid fa-plus"></i>
+</button>
+
+<!-- Modal ADD NEWS -->
+<div class="modal fade" id="addNewsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveNews(event)">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus me-2"></i>Đăng Tin Hoạt Động &amp; Thông Báo Mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1">Mã tin (ví dụ: n4)</label>
+                        <input type="text" id="add_n_code" class="form-control" placeholder="n4" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1">Phân loại tin</label>
+                        <select id="add_n_type" class="form-select">
+                            <option value="PROMOTION">⚡ Tin Khuyến Mãi / Ưu Đãi</option>
+                            <option value="SYSTEM">🎉 Tin Hoạt Động / Hệ Thống</option>
+                            <option value="ORDER">📦 Tin Đơn Hàng / Dịch Vụ</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1">Tiêu đề tin hoạt động</label>
+                        <input type="text" id="add_n_title" class="form-control" placeholder="Nhập tiêu đề thông báo..." required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1">Ảnh đính kèm tin hoạt động</label>
+                        <input type="file" id="add_n_file" class="form-control" accept="image/*" onchange="uploadNewsImage(event)">
+                        <input type="text" id="add_n_image_url" class="form-control mt-1" placeholder="Hoặc dán URL ảnh / Base64...">
+                        <img id="add_n_preview" class="d-none mt-2 rounded border" style="max-height: 80px;" alt="Xem trước">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-bold mb-1">Nội dung chi tiết thông báo</label>
+                        <textarea id="add_n_message" class="form-control" rows="3" placeholder="Nội dung gửi tới khách hàng trên App..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Phát Tin Lên App</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+let allNews = {};
+
+db.ref('notifications').on('value', snapshot => {
+    allNews = snapshot.val() || {};
+    renderNews();
+});
+
+function renderNews() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const tbody = document.getElementById('newsTableBody');
+    let html = '';
+
+    Object.keys(allNews).forEach(key => {
+        const n = allNews[key];
+        const code = n.id || key;
+        const title = n.title || '';
+        const img = n.imageUrl || 'https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=200&auto=format&fit=crop&q=80';
+
+        if (q && !title.toLowerCase().includes(q) && !code.toLowerCase().includes(q)) return;
+
+        let badgeClass = 'bg-info';
+        if (n.type === 'PROMOTION') badgeClass = 'bg-warning text-dark';
+        if (n.type === 'ORDER') badgeClass = 'bg-success';
+
+        html += `<tr>
+            <td>
+                <div class="position-relative d-inline-block" style="cursor: pointer;" title="Nhấn vào đây để tải/đổi ảnh trực tiếp" onclick="triggerQuickNewsUpload('${code}')">
+                    <img id="img_news_thumb_${code}" src="${img}" style="width: 54px; height: 38px; object-fit: cover;" class="rounded border shadow-sm">
+                    <span class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-1" style="font-size: 9px; opacity: 0.85;">
+                        <i class="fa-solid fa-camera"></i>
+                    </span>
+                </div>
+                <input type="file" id="file_quick_news_${code}" class="d-none" accept="image/*" onchange="quickUploadNewsImage(event, '${code}')">
+            </td>
+            <td><code>${code}</code></td>
+            <td><strong class="text-primary">${title}</strong></td>
+            <td><small class="text-muted">${n.message || ''}</small></td>
+            <td><span class="badge ${badgeClass}">${n.type || 'SYSTEM'}</span></td>
+            <td><small class="text-muted">${n.time || 'Vừa xong'}</small></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteNews('${code}')"><i class="fa-solid fa-trash"></i> Xóa</button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted py-4">Chưa có tin hoạt động nào.</td></tr>';
+}
+
+function triggerQuickNewsUpload(code) {
+    const fileInput = document.getElementById('file_quick_news_' + code);
+    if (fileInput) fileInput.click();
+}
+
+function quickUploadNewsImage(event, code) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxSize = 800;
+            let w = img.width;
+            let h = img.height;
+            if (w > h && w > maxSize) {
+                h = Math.round((h * maxSize) / w);
+                w = maxSize;
+            } else if (h > maxSize) {
+                w = Math.round((w * maxSize) / h);
+                h = maxSize;
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+            db.ref('notifications/' + code).update({
+                imageUrl: compressedBase64
+            }).then(() => {
+                const thumb = document.getElementById('img_news_thumb_' + code);
+                if (thumb) thumb.src = compressedBase64;
+
+                const alertBox = document.getElementById('alertBox');
+                const alertMsg = document.getElementById('alertMsg');
+                if (alertBox && alertMsg) {
+                    alertMsg.innerText = 'Đã tải và cập nhật ảnh mới cho tin ' + code + ' lên Firebase Cloud!';
+                    alertBox.classList.remove('d-none');
+                    setTimeout(() => alertBox.classList.add('d-none'), 3500);
+                }
+            }).catch(err => {
+                alert('Lỗi cập nhật ảnh lên Firebase: ' + err.message);
+            });
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function uploadNewsImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Str = e.target.result;
+        document.getElementById('add_n_image_url').value = base64Str;
+        document.getElementById('add_n_preview').src = base64Str;
+        document.getElementById('add_n_preview').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveNews(e) {
+    e.preventDefault();
+    const code = document.getElementById('add_n_code').value.trim();
+    if (!code) return;
+
+    const nData = {
+        id: code,
+        title: document.getElementById('add_n_title').value.trim(),
+        message: document.getElementById('add_n_message').value.trim(),
+        imageUrl: document.getElementById('add_n_image_url').value.trim(),
+        type: document.getElementById('add_n_type').value,
+        time: 'Vừa xong',
+        isRead: false
+    };
+
+    db.ref('notifications/' + code).set(nData).then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('addNewsModal')).hide();
+        alert('Đã phát tin hoạt động thành công!');
+    });
+}
+
+function deleteNews(code) {
+    if (confirm('Xóa tin hoạt động này khỏi hệ thống?')) {
+        db.ref('notifications/' + code).remove().then(() => alert('Đã xóa tin hoạt động!'));
+    }
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

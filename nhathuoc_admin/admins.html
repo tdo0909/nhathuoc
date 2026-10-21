@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Tài khoản quản trị - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Quản trị viên</strong><small>Nhà thuốc An Tâm</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li class="active"><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-user-shield"></i></span> Quản Lý Tài Khoản Quản Trị</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success d-none"></div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div>
+                    <h6 class="fw-bold mb-1"><i class="fa-solid fa-users-gear me-2 text-primary"></i>Danh sách tài khoản admin</h6>
+                    <small class="text-muted">Quản lý người được phép truy cập hệ thống Quản Trị App.</small>
+                </div>
+                <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#adminModal" onclick="resetAdminForm()">
+                    <i class="fa-solid fa-plus me-1"></i>Thêm admin
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Họ tên</th>
+                            <th>Quyền</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminsBody">
+                        <tr><td colspan="5" class="text-center text-muted py-4">Đang tải tài khoản...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<button class="app-fab" data-bs-toggle="modal" data-bs-target="#adminModal" onclick="resetAdminForm()" title="Thêm admin mới">
+    <i class="fa-solid fa-plus"></i>
+</button>
+
+<div class="modal fade" id="adminModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveAdmin(event)">
+                <div class="modal-header book-modal-header py-3">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-user-shield me-2"></i><span id="adminModalTitle">Thêm tài khoản admin</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên đăng nhập</label>
+                        <input id="admin_username" class="form-control" placeholder="Tên đăng nhập admin..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ tên hiển thị</label>
+                        <input id="admin_full_name" class="form-control" placeholder="Tên đầy đủ..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mật khẩu</label>
+                        <input id="admin_password" type="password" class="form-control" minlength="6" placeholder="Tối thiểu 6 ký tự">
+                        <small class="text-muted">Khi sửa, để trống nếu không đổi mật khẩu.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Quyền</label>
+                        <select id="admin_role" class="form-select">
+                            <option value="admin">Quản trị viên</option>
+                            <option value="editor">Biên tập viên</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Lưu tài khoản</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+let admins = {};
+let editingAdmin = null;
+
+db.ref('admins').on('value', snapshot => {
+    admins = snapshot.val() || {};
+    renderAdmins();
+});
+
+function renderAdmins() {
+    const html = Object.keys(admins).map(key => {
+        const item = admins[key] || {};
+        const active = item.is_active !== 0;
+        return `<tr>
+            <td><strong>${escapeHtml(item.username || key)}</strong></td>
+            <td>${escapeHtml(item.full_name || 'Quản trị viên')}</td>
+            <td><span class="badge book-badge-featured">${item.role === 'editor' ? 'Biên tập viên' : 'Quản trị viên'}</span></td>
+            <td><span class="badge ${active ? 'bg-success' : 'bg-secondary'}">${active ? 'Đang hoạt động' : 'Đang khóa'}</span></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editAdmin('${escapeHtml(key)}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAdmin('${escapeHtml(key)}')"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('adminsBody').innerHTML = html || '<tr><td colspan="5" class="text-center text-muted py-4">Chưa có tài khoản admin.</td></tr>';
+}
+
+function resetAdminForm() {
+    editingAdmin = null;
+    document.querySelector('#adminModal form').reset();
+    document.getElementById('adminModalTitle').textContent = 'Thêm tài khoản admin';
+    document.getElementById('admin_username').readOnly = false;
+}
+
+function editAdmin(key) {
+    const item = admins[key] || {};
+    editingAdmin = key;
+    document.getElementById('admin_username').value = item.username || key;
+    document.getElementById('admin_username').readOnly = true;
+    document.getElementById('admin_full_name').value = item.full_name || '';
+    document.getElementById('admin_role').value = item.role || 'admin';
+    document.getElementById('admin_password').value = '';
+    document.getElementById('adminModalTitle').textContent = 'Chỉnh sửa tài khoản';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('adminModal')).show();
+}
+
+async function saveAdmin(event) {
+    event.preventDefault();
+    const username = cleanText(document.getElementById('admin_username').value);
+    const fullName = cleanText(document.getElementById('admin_full_name').value);
+    const password = document.getElementById('admin_password').value;
+
+    if (!username || !fullName || (!editingAdmin && password.length < 6)) {
+        alert('Vui lòng nhập đủ thông tin và mật khẩu tối thiểu 6 ký tự.');
+        return;
+    }
+
+    const key = editingAdmin || username;
+    const data = {
+        username,
+        full_name: fullName,
+        role: document.getElementById('admin_role').value,
+        is_active: 1
+    };
+
+    if (password) data.password = password;
+    else if (editingAdmin) data.password = admins[key].password || '';
+
+    await db.ref('admins/' + key).update(data);
+    bootstrap.Modal.getInstance(document.getElementById('adminModal')).hide();
+    showAlert('Đã lưu tài khoản admin thành công.');
+}
+
+function deleteAdmin(key) {
+    const username = admins[key]?.username || key;
+    if (username === (sessionStorage.getItem('admin_username') || 'admin')) {
+        alert('Không thể xóa tài khoản đang đăng nhập.');
+        return;
+    }
+    if (confirm('Xóa tài khoản ' + username + '?')) {
+        db.ref('admins/' + key).remove().then(() => showAlert('Đã xóa tài khoản.'));
+    }
+}
+
+function showAlert(message) {
+    const box = document.getElementById('alertBox');
+    box.textContent = message;
+    box.classList.remove('d-none');
+    setTimeout(() => box.classList.add('d-none'), 3500);
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

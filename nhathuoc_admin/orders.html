@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Đơn hàng - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li class="active"><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-cart-shopping"></i></span> Quản Lý Đơn Hàng</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="alertMsg"></span>
+            <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 flex-wrap" style="max-width: 1100px;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm mã đơn, tên, SĐT..." oninput="renderOrders()">
+                    <select id="statusFilter" class="form-select" style="max-width: 180px;" onchange="renderOrders()">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="Chờ xác nhận">Chờ xác nhận</option>
+                        <option value="Đang chuẩn bị">Đang chuẩn bị</option>
+                        <option value="Đang giao">Đang giao</option>
+                        <option value="Đã giao">Đã giao</option>
+                        <option value="Đã hủy">Đã hủy</option>
+                    </select>
+                    <label class="visually-hidden" for="dateFromFilter">Từ ngày</label>
+                    <input type="date" id="dateFromFilter" class="form-control date-filter" aria-label="Lọc đơn từ ngày" onchange="renderOrders()">
+                    <label class="visually-hidden" for="dateToFilter">Đến ngày</label>
+                    <input type="date" id="dateToFilter" class="form-control date-filter" aria-label="Lọc đơn đến ngày" onchange="renderOrders()">
+                    <button type="button" class="btn btn-outline-secondary" onclick="clearOrderFilters()">
+                        <i class="fa-solid fa-filter-circle-xmark me-1"></i>Xóa lọc
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã Đơn</th>
+                            <th>Ngày Đặt</th>
+                            <th>Khách Hàng</th>
+                            <th>Số Điện Thoại</th>
+                            <th>Tổng Tiền</th>
+                            <th>Thanh Toán</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <tr><td colspan="8" class="text-center text-muted py-4">Đang tải đơn hàng từ Firebase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal ORDER DETAIL -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title fw-bold fs-6" id="modal_order_title"><i class="fa-solid fa-receipt me-2"></i>Chi Tiết Đơn Hàng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="fw-bold text-muted d-block">NGƯỜI NHẬN:</label>
+                        <strong class="fs-6" id="modal_recipient_name"></strong><br>
+                        <span id="modal_recipient_phone"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold text-muted d-block">ĐỊA CHỈ GIAO HÀNG:</label>
+                        <span id="modal_recipient_address"></span>
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded mb-3">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Tên sản phẩm</th>
+                                <th class="text-center">Đơn giá</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-end">Thành tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal_order_items_body">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 bg-light rounded text-end">
+                    <div>Tạm tính: <strong id="modal_subtotal">0đ</strong></div>
+                    <div>Phí giao hàng: <strong id="modal_shipping">0đ</strong></div>
+                    <div class="fs-5 fw-bold text-primary mt-1">Tổng cộng: <span id="modal_total">0đ</span></div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item active">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+let allOrders = {};
+
+db.ref('orders').on('value', snapshot => {
+    allOrders = snapshot.val() || {};
+    renderOrders();
+});
+
+function renderOrders() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const stFilter = document.getElementById('statusFilter').value;
+    const dateFrom = document.getElementById('dateFromFilter').value;
+    const dateTo = document.getElementById('dateToFilter').value;
+    const tbody = document.getElementById('ordersTableBody');
+    let html = '';
+
+    Object.keys(allOrders).reverse().forEach(key => {
+        const o = allOrders[key];
+        const code = o.orderId || o.order_code || key;
+        const name = o.fullName || o.full_name || 'Khách hàng';
+        const phone = o.phone || '';
+        const status = o.status || 'Chờ xác nhận';
+
+        if (q && !code.toLowerCase().includes(q) && !name.toLowerCase().includes(q) && !phone.includes(q)) return;
+        if (stFilter && status !== stFilter) return;
+        const orderDate = getOrderDateValue(o);
+        if ((dateFrom || dateTo) && !orderDate) return;
+        if (dateFrom && orderDate < dateFrom) return;
+        if (dateTo && orderDate > dateTo) return;
+
+        const total = parseFloat(o.totalAmount || o.total_amount || 0);
+
+        html += `<tr>
+            <td><strong class="text-primary">${code}</strong></td>
+            <td><small class="text-muted">${o.date || 'Hôm nay'}</small></td>
+            <td><strong class="text-dark">${name}</strong></td>
+            <td><code>${phone}</code></td>
+            <td><strong class="text-success fs-6">${total.toLocaleString()}đ</strong></td>
+            <td><small class="text-secondary">${o.paymentMethod || o.payment_method || 'COD'}</small></td>
+            <td>
+                <select class="form-select form-select-sm fw-bold border-1" onchange="updateOrderStatus('${key}', this.value)" style="width: 140px;">
+                    <option value="Chờ xác nhận" ${status === 'Chờ xác nhận' ? 'selected' : ''}>Chờ xác nhận</option>
+                    <option value="Đang chuẩn bị" ${status === 'Đang chuẩn bị' ? 'selected' : ''}>Đang chuẩn bị</option>
+                    <option value="Đang giao" ${status === 'Đang giao' ? 'selected' : ''}>Đang giao</option>
+                    <option value="Đã giao" ${status === 'Đã giao' ? 'selected' : ''}>Đã giao</option>
+                    <option value="Đã hủy" ${status === 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
+                </select>
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-info fw-bold" onclick="showDetail('${key}')"><i class="fa-solid fa-eye me-1"></i> Chi tiết</button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng nào.</td></tr>';
+}
+
+function getOrderDateValue(order) {
+    const value = order.createdAt || order.created_at || order.date || order.timestamp;
+    if (typeof value === 'number') {
+        const date = new Date(value < 1000000000000 ? value * 1000 : value);
+        return Number.isNaN(date.getTime()) ? '' : localDateInputValue(date);
+    }
+    const text = String(value || '').trim();
+    const isoDate = text.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoDate) return isoDate[1];
+    const vietnameseDate = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (vietnameseDate) {
+        return `${vietnameseDate[3]}-${vietnameseDate[2].padStart(2, '0')}-${vietnameseDate[1].padStart(2, '0')}`;
+    }
+    const parsedDate = new Date(text);
+    return Number.isNaN(parsedDate.getTime()) ? '' : localDateInputValue(parsedDate);
+}
+
+function localDateInputValue(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function clearOrderFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('dateFromFilter').value = '';
+    document.getElementById('dateToFilter').value = '';
+    renderOrders();
+}
+
+function updateOrderStatus(key, newStatus) {
+    db.ref('orders/' + key + '/status').set(newStatus).then(() => {
+        showAlert('Đã cập nhật trạng thái đơn hàng!');
+    });
+}
+
+function showDetail(key) {
+    const o = allOrders[key];
+    if (!o) return;
+
+    document.getElementById('modal_order_title').innerText = 'Chi Tiết Đơn Hàng: ' + (o.orderId || key);
+    document.getElementById('modal_recipient_name').innerText = o.fullName || o.full_name || 'Khách hàng';
+    document.getElementById('modal_recipient_phone').innerText = 'SĐT: ' + (o.phone || '');
+    document.getElementById('modal_recipient_address').innerText = o.address || o.shipping_address || '';
+
+    let itemsBody = '';
+    const items = o.items || [];
+    items.forEach(i => {
+        let pName = i.product_name || i.name || 'Sản phẩm';
+        let price = parseInt(i.price || 0);
+        let qty = parseInt(i.quantity || 1);
+        let sub = price * qty;
+        itemsBody += `<tr>
+            <td><strong>${pName}</strong></td>
+            <td class="text-center">${price.toLocaleString()}đ</td>
+            <td class="text-center">x${qty}</td>
+            <td class="text-end fw-bold">${sub.toLocaleString()}đ</td>
+        </tr>`;
+    });
+
+    document.getElementById('modal_order_items_body').innerHTML = itemsBody;
+    document.getElementById('modal_subtotal').innerText = parseInt(o.subtotal || 0).toLocaleString() + 'đ';
+    document.getElementById('modal_shipping').innerText = parseInt(o.shippingFee || o.shipping_fee || 0).toLocaleString() + 'đ';
+    document.getElementById('modal_total').innerText = parseInt(o.totalAmount || o.total_amount || 0).toLocaleString() + 'đ';
+
+    new bootstrap.Modal(document.getElementById('orderDetailModal')).show();
+}
+
+function showAlert(msg) {
+    const box = document.getElementById('alertBox');
+    document.getElementById('alertMsg').innerText = msg;
+    box.classList.remove('d-none');
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

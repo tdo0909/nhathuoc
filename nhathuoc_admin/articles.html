@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Mẹo Hay Sức Khỏe - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li class="active"><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-lightbulb"></i></span> Quản Lý Mẹo Hay &amp; Góc Sức Khỏe</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="alertMsg"></span>
+            <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 400px;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm bài viết..." oninput="renderArticles()">
+                </div>
+
+                <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addArticleModal">
+                    <i class="fa-solid fa-plus me-1"></i> Thêm Bài Viết / Mẹo Hay Mới
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ảnh Minh Họa</th>
+                            <th>Mã Bài</th>
+                            <th>Tiêu Đề Bài Viết</th>
+                            <th>Tóm Tắt Nhanh</th>
+                            <th>Tác Giả</th>
+                            <th>Ngày Đăng</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="articlesTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-4">Đang tải danh sách bài viết từ Firebase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<button class="app-fab" data-bs-toggle="modal" data-bs-target="#addArticleModal" title="Thêm bài viết mới">
+    <i class="fa-solid fa-plus"></i>
+</button>
+
+<!-- Modal ADD ARTICLE -->
+<div class="modal fade" id="addArticleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form onsubmit="saveArticle(event)">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus me-2"></i>Thêm Mẹo Hay / Bài Viết Sức Khỏe Mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Mã bài viết (ví dụ: a4)</label>
+                            <input type="text" id="add_a_code" class="form-control" placeholder="a4" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Tác giả</label>
+                            <input type="text" id="add_a_author" class="form-control" value="Dược sĩ An Tâm" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Tiêu đề bài viết / Mẹo hay</label>
+                            <input type="text" id="add_a_title" class="form-control" placeholder="Nhập tiêu đề thu hút..." required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Đoạn tóm tắt ngắn</label>
+                            <input type="text" id="add_a_summary" class="form-control" placeholder="Tóm tắt hiển thị ở trang chủ..." required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Ảnh bài viết</label>
+                            <input type="file" id="add_a_file" class="form-control" accept="image/*" onchange="uploadArticleImage(event)">
+                            <input type="text" id="add_a_image_url" class="form-control mt-1" placeholder="Hoặc dán URL ảnh / Base64...">
+                            <img id="add_a_preview" class="d-none mt-2 rounded border" style="max-height: 80px;" alt="Xem trước">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Nội dung chi tiết bài viết</label>
+                            <textarea id="add_a_content" class="form-control" rows="4" placeholder="Nội dung chi tiết bài viết y khoa/mẹo sức khỏe..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Lưu Bài Viết</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+let allArticles = {};
+
+db.ref('articles').on('value', snapshot => {
+    allArticles = snapshot.val() || {};
+    renderArticles();
+});
+
+function renderArticles() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const tbody = document.getElementById('articlesTableBody');
+    let html = '';
+
+    Object.keys(allArticles).forEach(key => {
+        const a = allArticles[key];
+        const code = a.id || key;
+        const title = a.title || '';
+        const img = a.imageUrl || 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=200&auto=format&fit=crop&q=80';
+
+        if (q && !title.toLowerCase().includes(q) && !code.toLowerCase().includes(q)) return;
+
+        html += `<tr>
+            <td>
+                <div class="position-relative d-inline-block" style="cursor: pointer;" title="Nhấn vào đây để tải/đổi ảnh trực tiếp" onclick="triggerQuickUpload('${code}')">
+                    <img id="img_thumb_${code}" src="${img}" style="width: 60px; height: 42px; object-fit: cover;" class="rounded border shadow-sm">
+                    <span class="position-absolute bottom-0 end-0 bg-dark text-white rounded-circle p-1" style="font-size: 9px; opacity: 0.85;">
+                        <i class="fa-solid fa-camera"></i>
+                    </span>
+                </div>
+                <input type="file" id="file_quick_${code}" class="d-none" accept="image/*" onchange="quickUploadArticleImage(event, '${code}')">
+            </td>
+            <td><code>${code}</code></td>
+            <td><strong class="text-primary">${title}</strong></td>
+            <td><small class="text-muted">${a.summary || ''}</small></td>
+            <td><span class="badge bg-light text-dark border">${a.author || 'Dược sĩ An Tâm'}</span></td>
+            <td><small class="text-muted">${a.publishDate || 'Hôm nay'}</small></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteArticle('${code}')"><i class="fa-solid fa-trash"></i> Xóa</button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted py-4">Chưa có bài viết nào trên Firebase.</td></tr>';
+}
+
+function triggerQuickUpload(code) {
+    const fileInput = document.getElementById('file_quick_' + code);
+    if (fileInput) fileInput.click();
+}
+
+function quickUploadArticleImage(event, code) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxSize = 800;
+            let w = img.width;
+            let h = img.height;
+            if (w > h && w > maxSize) {
+                h = Math.round((h * maxSize) / w);
+                w = maxSize;
+            } else if (h > maxSize) {
+                w = Math.round((w * maxSize) / h);
+                h = maxSize;
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+
+            db.ref('articles/' + code).update({
+                imageUrl: compressedBase64
+            }).then(() => {
+                const thumb = document.getElementById('img_thumb_' + code);
+                if (thumb) thumb.src = compressedBase64;
+
+                const alertBox = document.getElementById('alertBox');
+                const alertMsg = document.getElementById('alertMsg');
+                if (alertBox && alertMsg) {
+                    alertMsg.innerText = 'Đã tải và cập nhật ảnh mới cho bài viết ' + code + '!';
+                    alertBox.classList.remove('d-none');
+                    setTimeout(() => alertBox.classList.add('d-none'), 3500);
+                }
+            }).catch(err => {
+                alert('Lỗi cập nhật ảnh lên Firebase: ' + err.message);
+            });
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function uploadArticleImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Str = e.target.result;
+        document.getElementById('add_a_image_url').value = base64Str;
+        document.getElementById('add_a_preview').src = base64Str;
+        document.getElementById('add_a_preview').classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+}
+
+function saveArticle(e) {
+    e.preventDefault();
+    const code = document.getElementById('add_a_code').value.trim();
+    if (!code) return;
+
+    const dateStr = new Date().toLocaleDateString('vi-VN');
+
+    const aData = {
+        id: code,
+        title: document.getElementById('add_a_title').value.trim(),
+        summary: document.getElementById('add_a_summary').value.trim(),
+        content: document.getElementById('add_a_content').value.trim(),
+        author: document.getElementById('add_a_author').value.trim(),
+        publishDate: dateStr,
+        imageUrl: document.getElementById('add_a_image_url').value.trim()
+    };
+
+    db.ref('articles/' + code).set(aData).then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('addArticleModal')).hide();
+        alert('Đã đăng bài viết/mẹo hay sức khỏe mới thành công!');
+    });
+}
+
+function deleteArticle(code) {
+    if (confirm('Xóa bài viết ' + code + ' khỏi hệ thống?')) {
+        db.ref('articles/' + code).remove().then(() => alert('Đã xóa bài viết!'));
+    }
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

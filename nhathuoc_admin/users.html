@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Khách hàng - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li class="active"><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-users"></i></span> Quản Lý Khách Hàng</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="alertMsg"></span>
+            <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 400px;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm tên, SĐT, email khách..." oninput="renderUsers()">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>STT</th>
+                            <th>Họ và Tên</th>
+                            <th>Số Điện Thoại</th>
+                            <th>Email</th>
+                            <th>Trạng Thái</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="6" class="text-center text-muted py-4">Đang tải tài khoản khách hàng từ Firebase Cloud...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+let allUsers = {};
+
+db.ref('users').on('value', snapshot => {
+    allUsers = snapshot.val() || {};
+    renderUsers();
+});
+
+function renderUsers() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const tbody = document.getElementById('usersTableBody');
+    let html = '';
+    let idx = 1;
+
+    Object.keys(allUsers).forEach(key => {
+        const u = allUsers[key];
+        const name = u.full_name || u.name || 'Khách hàng';
+        const phone = u.phone || '';
+        const email = u.email || 'Chưa cập nhật';
+        const isLocked = parseInt(u.is_locked) === 1;
+
+        if (q && !name.toLowerCase().includes(q) && !phone.includes(q) && !email.toLowerCase().includes(q)) return;
+
+        html += `<tr>
+            <td>${idx++}</td>
+            <td><strong class="text-dark">${name}</strong></td>
+            <td><code>${phone}</code></td>
+            <td><small class="text-muted">${email}</small></td>
+            <td>
+                ${isLocked ? '<span class="badge bg-danger"><i class="fa-solid fa-lock me-1"></i>Đã bị khóa</span>' : '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Hoạt động</span>'}
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm ${isLocked ? 'btn-outline-success' : 'btn-outline-danger'} fw-bold" onclick="toggleLock('${key}', ${isLocked ? 0 : 1})">
+                    <i class="fa-solid ${isLocked ? 'fa-lock-open' : 'fa-lock'} me-1"></i> ${isLocked ? 'Mở Khóa' : 'Khóa TK'}
+                </button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-4">Chưa có khách hàng nào.</td></tr>';
+}
+
+function toggleLock(key, newStatus) {
+    db.ref('users/' + key + '/is_locked').set(newStatus).then(() => {
+        showAlert(newStatus === 1 ? 'Đã khóa tài khoản khách hàng!' : 'Đã mở khóa tài khoản khách hàng!');
+    });
+}
+
+function showAlert(msg) {
+    const box = document.getElementById('alertBox');
+    document.getElementById('alertMsg').innerText = msg;
+    box.classList.remove('d-none');
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

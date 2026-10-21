@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Bảng điều khiển - App Quản Trị Nhà thuốc An Tâm</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" media="all">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" media="all">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016" media="all">
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script defer src="firebase-config.js?v=20260930"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Mở menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy">
+            <strong id="adminNameLabel">Quản Trị Viên</strong>
+            <small>Firebase Realtime</small>
+        </div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li class="active"><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title">
+            <span class="page-title-icon"><i class="fa-solid fa-hospital-user"></i></span>
+            Bảng Điều Khiển Quản Trị
+        </div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div class="row g-2 mb-3">
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Tổng sản phẩm</small>
+                        <h4 class="fw-bold my-1" id="statProducts">0</h4>
+                        <span class="text-success fs-8"><i class="fa-solid fa-pills me-1"></i>Kinh doanh</span>
+                    </div>
+                    <div class="stat-icon blue"><i class="fa-solid fa-boxes-stacked"></i></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Khách hàng</small>
+                        <h4 class="fw-bold my-1" id="statUsers">0</h4>
+                        <span class="text-info fs-8"><i class="fa-solid fa-user-check me-1"></i>Tài khoản</span>
+                    </div>
+                    <div class="stat-icon green"><i class="fa-solid fa-users"></i></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Tổng đơn hàng</small>
+                        <h4 class="fw-bold my-1" id="statOrders">0</h4>
+                        <span class="text-primary fs-8"><i class="fa-solid fa-cart-shopping me-1"></i>Toàn bộ</span>
+                    </div>
+                    <div class="stat-icon purple"><i class="fa-solid fa-receipt"></i></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Doanh thu</small>
+                        <h4 class="fw-bold my-1 text-success" id="statRevenue">0đ</h4>
+                        <span class="text-success fs-8"><i class="fa-solid fa-money-bill-trend-up me-1"></i>Đã giao</span>
+                    </div>
+                    <div class="stat-icon green"><i class="fa-solid fa-sack-dollar"></i></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Đơn mới</small>
+                        <h4 class="fw-bold my-1 text-warning" id="statPendingOrders">0</h4>
+                        <span class="text-warning fs-8"><i class="fa-solid fa-clock me-1"></i>Chờ xác nhận</span>
+                    </div>
+                    <div class="stat-icon orange"><i class="fa-solid fa-bell"></i></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-md-4 col-xl-2">
+                <div class="stat-card">
+                    <div>
+                        <small class="text-muted fw-semibold">Sắp hết hàng</small>
+                        <h4 class="fw-bold my-1 text-danger" id="statLowStock">0</h4>
+                        <span class="text-danger fs-8"><i class="fa-solid fa-triangle-exclamation me-1"></i>Tồn ≤ 10</span>
+                    </div>
+                    <div class="stat-icon red"><i class="fa-solid fa-warehouse"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-lg-5">
+                <div class="table-card p-3 h-100">
+                    <h6 class="fw-bold mb-2"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Trạng thái đơn hàng</h6>
+                    <div style="max-height: 240px; position: relative;" class="d-flex justify-content-center">
+                        <canvas id="orderStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-7">
+                <div class="table-card h-100">
+                    <div class="table-header-tools">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Đơn hàng mới nhận từ App</h6>
+                        <a href="orders.html" class="btn btn-sm btn-outline-primary fw-bold">Xem tất cả ›</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Mã đơn</th>
+                                    <th>Khách hàng</th>
+                                    <th>Tổng tiền</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentOrdersBody">
+                                <tr><td colspan="4" class="text-center text-muted py-3">Đang tải dữ liệu từ Firebase...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-lg-4">
+                <div class="table-card dashboard-panel h-100">
+                    <div class="table-header-tools">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i>Sắp hết hàng</h6>
+                        <a href="products.html" class="btn btn-sm btn-outline-primary">Kho thuốc</a>
+                    </div>
+                    <div id="lowStockBody" class="dashboard-list">
+                        <div class="text-muted text-center py-3">Đang tải...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="table-card dashboard-panel h-100">
+                    <div class="table-header-tools">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-star text-warning me-2"></i>Sản phẩm nổi bật</h6>
+                        <a href="products.html" class="btn btn-sm btn-outline-primary">Xem kho</a>
+                    </div>
+                    <div id="featuredProductsBody" class="dashboard-list">
+                        <div class="text-muted text-center py-3">Đang tải...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="table-card dashboard-panel h-100">
+                    <div class="table-header-tools">
+                        <h6 class="fw-bold mb-0"><i class="fa-solid fa-user-group text-primary me-2"></i>Khách hàng mới</h6>
+                        <a href="users.html" class="btn btn-sm btn-outline-primary">Danh sách</a>
+                    </div>
+                    <div id="recentUsersBody" class="dashboard-list">
+                        <div class="text-muted text-center py-3">Đang tải...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item active">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.checkAdminAuth === 'function') {
+        window.checkAdminAuth();
+    }
+    const adminNameLabel = document.getElementById('adminNameLabel');
+    if (adminNameLabel) adminNameLabel.innerText = 'Quản trị viên';
+
+    let chartInstance = null;
+
+    if (!window.db || typeof window.db.ref !== 'function') {
+        document.getElementById('recentOrdersBody').innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Không thể kết nối Firebase.</td></tr>';
+        document.getElementById('lowStockBody').innerHTML = '<div class="empty-state">Không thể kết nối Firebase.</div>';
+        document.getElementById('featuredProductsBody').innerHTML = '<div class="empty-state">Không thể kết nối Firebase.</div>';
+        document.getElementById('recentUsersBody').innerHTML = '<div class="empty-state">Không thể kết nối Firebase.</div>';
+        return;
+    }
+
+    // Realtime listeners on Firebase Database
+    db.ref('products').on('value', snapshot => {
+        const products = snapshot.val() || {};
+        const keys = Object.keys(products);
+        document.getElementById('statProducts').innerText = keys.length;
+
+        let lowStock = 0;
+        const lowStockItems = [];
+        const featuredItems = [];
+        keys.forEach(k => {
+            const product = products[k] || {};
+            const stock = parseInt(product.stock_quantity) || 0;
+            if (stock <= 10) {
+                lowStock++;
+                lowStockItems.push({ name: product.name || 'Sản phẩm', stock });
+            }
+            if (product.isBestSeller || product.isPromotion) featuredItems.push(product);
+        });
+        document.getElementById('statLowStock').innerText = lowStock;
+        document.getElementById('lowStockBody').innerHTML = (lowStockItems.slice(0, 5).map(item => `<div class="dashboard-list-item"><span>${item.name}</span><strong class="text-danger">${item.stock}</strong></div>`).join('')) || '<div class="empty-state">Kho thuốc đang ổn định.</div>';
+        document.getElementById('featuredProductsBody').innerHTML = (featuredItems.slice(0, 5).map(product => `<div class="dashboard-list-item"><span>${product.name || 'Sản phẩm'}</span><strong class="text-success">${parseInt(product.price || 0).toLocaleString()}đ</strong></div>`).join('')) || '<div class="empty-state">Chưa có sản phẩm nổi bật.</div>';
+    });
+
+    db.ref('users').on('value', snapshot => {
+        const users = snapshot.val() || {};
+        document.getElementById('statUsers').innerText = Object.keys(users).length;
+        const recentUsers = Object.values(users).slice(-5).reverse();
+        document.getElementById('recentUsersBody').innerHTML = recentUsers.map(user => `<div class="dashboard-list-item"><span>${user.full_name || user.name || user.username || 'Khách hàng'}</span><small>${user.phone || user.email || 'Tài khoản mới'}</small></div>`).join('') || '<div class="empty-state">Chưa có khách hàng mới.</div>';
+    });
+
+    db.ref('orders').on('value', snapshot => {
+        const orders = snapshot.val() || {};
+        const keys = Object.keys(orders);
+        document.getElementById('statOrders').innerText = keys.length;
+
+        let revenue = 0;
+        let pending = 0;
+        let statusCounts = {};
+        let recentHtml = '';
+
+        keys.reverse().forEach((k, idx) => {
+            const o = orders[k];
+            const status = o.status || 'Chờ xác nhận';
+            const total = parseFloat(o.totalAmount || o.total_amount || 0);
+
+            if (status === 'Đã giao') revenue += total;
+            if (status === 'Chờ xác nhận') pending++;
+
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+            if (idx < 8) {
+                let badgeClass = "badge-pending";
+                if (status === 'Đã giao') badgeClass = "badge-delivered";
+                else if (status === 'Đang chuẩn bị') badgeClass = "badge-preparing";
+                else if (status === 'Đang giao') badgeClass = "badge-shipping";
+                else if (status === 'Đã hủy') badgeClass = "badge-cancelled";
+
+                recentHtml += `<tr>
+                    <td><strong class="text-primary">${o.orderId || o.order_code || k}</strong></td>
+                    <td>${o.fullName || o.full_name || 'Khách hàng'}</td>
+                    <td class="fw-bold">${total.toLocaleString()}đ</td>
+                    <td><span class="status-badge ${badgeClass}">${status}</span></td>
+                </tr>`;
+            }
+        });
+
+        document.getElementById('statRevenue').innerText = revenue.toLocaleString() + 'đ';
+        document.getElementById('statPendingOrders').innerText = pending;
+        document.getElementById('recentOrdersBody').innerHTML = recentHtml || '<tr><td colspan="4" class="text-center text-muted py-3">Chưa có đơn hàng nào.</td></tr>';
+
+        const labels = Object.keys(statusCounts);
+        const data = Object.values(statusCounts);
+
+        if (chartInstance) chartInstance.destroy();
+        const ctx = document.getElementById('orderStatusChart')?.getContext('2d');
+        if (ctx) {
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#FEF3C7', '#E0F2FE', '#FFEDD5', '#DCFCE7', '#FEE2E2'],
+                        borderColor: ['#D97706', '#0284C7', '#EA580C', '#16A34A', '#DC2626'],
+                        borderWidth: 1.5
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+        }
+    });
+
+    const toggleSidebar = () => {
+        document.body.classList.toggle('sidebar-open');
+    };
+
+    document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+    document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+    document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+});
+</script>
+
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

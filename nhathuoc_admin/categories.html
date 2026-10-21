@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Danh mục - App Quản Trị Nhà thuốc An Tâm</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li class="active"><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-layer-group"></i></span> Quản Lý Danh Mục</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+            <span id="alertMsg"></span>
+            <button type="button" class="btn-close" onclick="this.parentElement.classList.add('d-none')"></button>
+        </div>
+
+        <div class="table-card">
+            <div class="table-header-tools">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-layer-group me-2 text-primary"></i>Danh Sách Danh Mục Sản Phẩm</h6>
+                <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                    <i class="fa-solid fa-plus me-1"></i> Thêm Danh Mục Mới
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ảnh</th>
+                            <th>Mã Danh Mục</th>
+                            <th>Tên Danh Mục</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoriesTableBody">
+                        <tr><td colspan="4" class="text-center text-muted py-4">Đang tải danh mục từ Firebase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<button class="app-fab" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Thêm danh mục mới">
+    <i class="fa-solid fa-plus"></i>
+</button>
+
+<!-- Modal ADD CATEGORY -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveCategory(event)">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-plus me-2"></i>Thêm Danh Mục Mới</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã danh mục (ví dụ: cat_thucpham)</label>
+                        <input type="text" id="add_cat_code" class="form-control" placeholder="cat_thucpham" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên danh mục</label>
+                        <input type="text" id="add_cat_name" class="form-control" placeholder="Nhập tên danh mục..." required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ảnh danh mục</label>
+                        <input type="file" id="add_cat_file" class="form-control" accept="image/*" onchange="uploadCategoryImage(event)">
+                        <input type="url" id="add_cat_image_url" class="form-control mt-2" placeholder="Hoặc dán URL ảnh">
+                        <img id="add_cat_preview" class="category-preview d-none mt-2" alt="Xem trước danh mục">
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold">Lưu Danh Mục</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item active">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+const DEFAULT_CAT_IMG = 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=200&auto=format&fit=crop&q=80';
+
+let allCategories = {};
+let editingCategory = null;
+
+db.ref('categories').on('value', snapshot => {
+    allCategories = snapshot.val() || {};
+    renderCategories();
+});
+
+function renderCategories() {
+    const tbody = document.getElementById('categoriesTableBody');
+    let html = '';
+
+    Object.keys(allCategories).forEach(key => {
+        const c = allCategories[key];
+        const code = c.id || key;
+        const name = c.name || 'Danh mục';
+        const imgSrc = c.imageUrl || c.image_url || DEFAULT_CAT_IMG;
+
+        html += `<tr>
+            <td>
+                <label class="image-upload-thumb" title="Bấm để đổi ảnh thực tế danh mục">
+                    <img src="${escapeHtml(imgSrc)}" class="category-thumb" alt="Danh mục" onerror="this.src='${DEFAULT_CAT_IMG}'">
+                    <input type="file" class="d-none" accept="image/*" onchange="uploadCategoryRowImage(event, '${escapeHtml(code)}')">
+                </label>
+            </td>
+            <td><code>${code}</code></td>
+            <td><strong class="text-primary fs-6">${name}</strong></td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory('${escapeHtml(code)}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteCategory('${code}')"><i class="fa-solid fa-trash"></i> Xóa</button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="4" class="text-center text-muted py-4">Chưa có danh mục nào.</td></tr>';
+}
+
+async function uploadCategoryImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+        const url = await uploadImage(file, 'categories');
+        document.getElementById('add_cat_image_url').value = url;
+        document.getElementById('add_cat_preview').src = url;
+        document.getElementById('add_cat_preview').classList.remove('d-none');
+    } catch (error) { alert(error.message); }
+}
+
+async function uploadCategoryRowImage(event, code) {
+    const file = event.target.files[0];
+    if (!file || !allCategories[code]) return;
+    try {
+        const url = await uploadImage(file, `categories/${code}`);
+        await db.ref('categories/' + code).update({
+            imageUrl: url,
+            image_url: url
+        });
+        showAlert('Đã tải và đổi ảnh danh mục thành công!');
+    } catch (error) { alert('Không thể lưu ảnh danh mục: ' + error.message); }
+}
+
+function editCategory(code) {
+    const category = allCategories[code];
+    if (!category) return;
+    editingCategory = code;
+    document.getElementById('add_cat_code').value = code;
+    document.getElementById('add_cat_code').readOnly = true;
+    document.getElementById('add_cat_name').value = category.name || '';
+
+    const imgUrl = category.imageUrl || category.image_url || '';
+    document.getElementById('add_cat_image_url').value = imgUrl;
+    document.getElementById('add_cat_preview').src = imgUrl;
+    document.getElementById('add_cat_preview').classList.toggle('d-none', !imgUrl);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addCategoryModal')).show();
+}
+
+async function saveCategory(e) {
+    e.preventDefault();
+    const code = document.getElementById('add_cat_code').value.trim();
+    const name = document.getElementById('add_cat_name').value.trim();
+    const imgUrl = document.getElementById('add_cat_image_url').value.trim();
+    if (!code || !name) return;
+
+    db.ref('categories/' + code).set({
+        id: code,
+        name: name,
+        imageUrl: imgUrl,
+        image_url: imgUrl
+    }).then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+        document.getElementById('add_cat_code').readOnly = false;
+        editingCategory = null;
+        showAlert('Đã lưu danh mục và ảnh thành công!');
+    });
+}
+
+function deleteCategory(code) {
+    if (confirm('Xóa danh mục này khỏi hệ thống?')) {
+        db.ref('categories/' + code).remove().then(() => showAlert('Đã xóa danh mục thành công!'));
+    }
+}
+
+function showAlert(msg) {
+    const box = document.getElementById('alertBox');
+    document.getElementById('alertMsg').innerText = msg;
+    box.classList.remove('d-none');
+}
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

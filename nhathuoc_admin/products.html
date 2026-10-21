@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07594E">
+    <title>Kho thuốc - App Quản Trị Nhà thuốc An Tâm</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://www.gstatic.com">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=20261016">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <script src="firebase-config.js?v=20260930"></script>
+</head>
+<body>
+
+<nav class="admin-topbar">
+    <div class="topbar-left">
+        <button class="sidebar-toggle" id="sidebarToggle" type="button"><i class="fa-solid fa-bars"></i></button>
+        <a href="dashboard.html" class="topbar-brand">
+            <span class="brand-mark"><i class="fa-solid fa-prescription-bottle-medical"></i></span>
+            <span class="brand-copy"><strong>NHÀ THUỐC AN TÂM</strong><small>APP QUẢN TRỊ</small></span>
+        </a>
+    </div>
+    <div class="topbar-account">
+        <div class="account-copy"><strong id="adminNameLabel">Admin</strong><small>Quản trị viên</small></div>
+        <span class="admin-user-avatar"><i class="fa-solid fa-user-shield"></i></span>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span></button>
+    </div>
+</nav>
+
+<aside class="admin-sidebar" id="adminSidebar">
+    <ul class="sidebar-menu">
+        <li class="sidebar-section">TỔNG QUAN</li>
+        <li><a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Bảng điều khiển</span></a></li>
+
+        <li class="sidebar-section">KHO THUỐC</li>
+        <li class="active"><a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a></li>
+        <li><a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a></li>
+
+        <li class="sidebar-section">BÁN HÀNG &amp; KHÁCH HÀNG</li>
+        <li><a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a></li>
+        <li><a href="users.html"><i class="fa-solid fa-users"></i><span>Quản lý khách hàng</span></a></li>
+        <li><a href="reviews.html"><i class="fa-solid fa-star"></i><span>Quản lý đánh giá</span></a></li>
+
+        <li class="sidebar-section">NỘI DUNG</li>
+        <li><a href="banners.html"><i class="fa-solid fa-images"></i><span>Banner trang chủ</span></a></li>
+        <li><a href="news.html"><i class="fa-solid fa-bullhorn"></i><span>Đăng tin hoạt động</span></a></li>
+        <li><a href="articles.html"><i class="fa-solid fa-lightbulb"></i><span>Mẹo hay sức khỏe</span></a></li>
+        <li><a href="admins.html"><i class="fa-solid fa-user-gear"></i><span>Tài khoản quản trị</span></a></li>
+    </ul>
+</aside>
+
+<button class="sidebar-backdrop" id="sidebarBackdrop" type="button"></button>
+
+<div class="admin-main">
+    <header class="admin-pagebar">
+        <div class="admin-header-title"><span class="page-title-icon"><i class="fa-solid fa-prescription-bottle-medical"></i></span> Quản Lý Kho Thuốc</div>
+        <span class="pagebar-context"><i class="fa-solid fa-circle text-success fs-9 me-1"></i> REALTIME CONNECTED</span>
+    </header>
+
+    <div class="admin-content">
+        <div class="table-card">
+            <div class="table-header-tools">
+                <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 480px;">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Tìm theo tên thuốc hoặc mã sản phẩm..." oninput="renderProducts()">
+                </div>
+
+                <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addProductModal" onclick="resetForm()">
+                    <i class="fa-solid fa-plus me-1"></i> Thêm sản phẩm
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 64px;">Ảnh</th>
+                            <th>Mã SP</th>
+                            <th>Thuốc &amp; thông tin</th>
+                            <th>Giá bán</th>
+                            <th>Tồn kho</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody">
+                        <tr><td colspan="7" class="text-center text-muted py-3">Đang tải kho thuốc từ Firebase...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Button for Mobile -->
+<button class="app-fab" data-bs-toggle="modal" data-bs-target="#addProductModal" onclick="resetForm()" title="Thêm sản phẩm mới">
+    <i class="fa-solid fa-plus"></i>
+</button>
+
+<!-- Product editor -->
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form onsubmit="saveProduct(event)">
+                <div class="modal-header book-modal-header py-3">
+                    <h5 class="modal-title fw-bold fs-6"><i class="fa-solid fa-prescription-bottle-medical me-2"></i><span id="modalTitle">Thêm sản phẩm mới</span></h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">Mã sản phẩm</label>
+                            <input type="text" id="add_code" class="form-control" placeholder="p31" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">Thể loại</label>
+                            <select id="add_cat_id" class="form-select" required></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">Tồn kho</label>
+                            <input type="number" id="add_stock" class="form-control" value="10" min="0" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Tên sản phẩm</label>
+                            <input type="text" id="add_name" class="form-control" placeholder="Tên thuốc đầy đủ..." required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Quy cách</label>
+                            <input type="text" id="add_spec" class="form-control" placeholder="Hộp 60 viên">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Xuất xứ</label>
+                            <input type="text" id="add_origin" class="form-control" placeholder="Việt Nam / Mỹ">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold mb-1">Ảnh sản phẩm</label>
+                            <div class="image-dropzone" onclick="document.getElementById('add_image_file').click()">
+                                <i class="fa-solid fa-cloud-arrow-up"></i><span>Tải ảnh lên từ thiết bị</span><small>Chụp hoặc chọn ảnh thực tế của thuốc</small>
+                            </div>
+                            <input type="file" id="add_image_file" class="d-none" accept="image/*" onchange="uploadImageFile(event)">
+                            <input type="url" id="add_image_url" class="form-control mt-2" placeholder="Hoặc dán URL ảnh trực tiếp">
+                            <div class="mt-2"><img id="add_image_preview" src="" class="book-cover-preview d-none" alt="Xem trước ảnh"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">Giá bán (VNĐ)</label>
+                            <input type="number" id="add_price" class="form-control" placeholder="150000" min="0" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">Giá niêm yết</label>
+                            <input type="number" id="add_old_price" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold mb-1">% giảm giá</label>
+                            <input type="number" id="add_discount" class="form-control" value="0" min="0" max="100">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Mô tả ngắn</label>
+                            <input type="text" id="add_description" class="form-control" placeholder="Thông tin sản phẩm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold mb-1">Mã ảnh cũ (nếu có)</label>
+                            <input type="text" id="add_image_res_id" class="form-control" placeholder="0">
+                        </div>
+                        <div class="col-md-12 mt-2">
+                            <div class="form-check form-check-inline me-4">
+                                <input class="form-check-input" type="checkbox" id="add_bestseller">
+                                <label class="form-check-label fw-bold text-primary" for="add_bestseller">Sản phẩm bán chạy</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="add_promotion">
+                                <label class="form-check-label fw-bold text-danger" for="add_promotion">Sản phẩm khuyến mãi</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary fw-bold" id="saveButton">Lưu sản phẩm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation Bar -->
+<div class="app-bottom-nav">
+    <ul class="app-bottom-nav-items">
+        <li class="app-bottom-item">
+            <a href="dashboard.html"><i class="fa-solid fa-chart-line"></i><span>Tổng quan</span></a>
+        </li>
+        <li class="app-bottom-item active">
+            <a href="products.html"><i class="fa-solid fa-prescription-bottle-medical"></i><span>Kho thuốc</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="orders.html"><i class="fa-solid fa-cart-shopping"></i><span>Đơn hàng</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <a href="categories.html"><i class="fa-solid fa-layer-group"></i><span>Danh mục</span></a>
+        </li>
+        <li class="app-bottom-item">
+            <button type="button" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i><span>Thêm</span></button>
+        </li>
+    </ul>
+</div>
+
+<script>
+checkAdminAuth();
+
+const DEFAULT_MED_IMG = 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=200&auto=format&fit=crop&q=80';
+
+let allProducts = {};
+let allCategories = {};
+let editingCode = null;
+
+db.ref('categories').on('value', snapshot => {
+    allCategories = snapshot.val() || {};
+    let options = '';
+    Object.keys(allCategories).forEach(k => {
+        options += `<option value="${escapeHtml(k)}">${escapeHtml(allCategories[k].name)}</option>`;
+    });
+    document.getElementById('add_cat_id').innerHTML = options;
+});
+
+db.ref('products').on('value', snapshot => {
+    allProducts = snapshot.val() || {};
+    renderProducts();
+});
+
+function renderProducts() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const tbody = document.getElementById('productsTableBody');
+    let html = '';
+
+    Object.keys(allProducts).forEach(key => {
+        const p = allProducts[key];
+        const pId = p.id || key;
+        const pName = cleanText(p.name || '');
+        const details = `${cleanText(p.specification)} ${cleanText(p.origin)}`.toLowerCase();
+
+        if (q && !pName.toLowerCase().includes(q) && !pId.toLowerCase().includes(q) && !details.includes(q)) return;
+
+        const stock = parseInt(p.stock_quantity) || 100;
+        const stockBadge = stock <= 10 ? `<span class="badge bg-danger">${stock} (Sắp hết)</span>` : `<span class="badge bg-success">${stock}</span>`;
+        const imgSrc = p.imageUrl || p.image_url || DEFAULT_MED_IMG;
+
+        html += `<tr>
+            <td>
+                <label class="image-upload-thumb" title="Bấm vào để đổi ảnh thực tế sản phẩm">
+                    <img src="${escapeHtml(imgSrc)}" class="table-product-thumb book-table-cover" alt="Ảnh thuốc" onerror="this.src='${DEFAULT_MED_IMG}'">
+                    <input type="file" class="d-none" accept="image/*" onchange="uploadProductImage(event, '${escapeHtml(pId)}')">
+                </label>
+            </td>
+            <td><code>${escapeHtml(pId)}</code></td>
+            <td>
+                <strong class="d-block book-title">${escapeHtml(pName)}</strong>
+                <small class="text-muted">${escapeHtml(cleanText(p.specification || p.origin || 'Chưa cập nhật thông tin'))}</small>
+            </td>
+            <td>
+                <span class="fw-bold text-success">${parseInt(p.price || 0).toLocaleString()}đ</span>
+                ${(p.oldPrice > p.price) ? `<small class="text-muted d-block text-decoration-line-through">${parseInt(p.oldPrice).toLocaleString()}đ</small>` : ''}
+            </td>
+            <td>${stockBadge}</td>
+            <td>
+                ${p.isBestSeller ? '<span class="badge book-badge-featured me-1">Nổi bật</span>' : ''}
+                ${p.isPromotion ? '<span class="badge book-badge-sale">Giảm giá</span>' : ''}
+            </td>
+            <td class="text-end">
+                <button class="btn btn-sm btn-outline-primary py-1 px-2 me-1" onclick="editProduct('${escapeHtml(pId)}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline-danger py-1 px-2" onclick="deleteProduct('${escapeHtml(pId)}')"><i class="fa-solid fa-trash"></i></button>
+            </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted py-3">Không tìm thấy sản phẩm nào.</td></tr>';
+}
+
+function resetForm() {
+    editingCode = null;
+    document.querySelector('#addProductModal form').reset();
+    document.getElementById('add_code').readOnly = false;
+    document.getElementById('modalTitle').textContent = 'Thêm sản phẩm mới';
+    document.getElementById('saveButton').textContent = 'Lưu sản phẩm';
+    document.getElementById('add_image_preview').classList.add('d-none');
+}
+
+function editProduct(code) {
+    const p = allProducts[code];
+    if (!p) return;
+    editingCode = code;
+    document.getElementById('modalTitle').textContent = 'Chỉnh sửa sản phẩm';
+    document.getElementById('saveButton').textContent = 'Cập nhật sản phẩm';
+    document.getElementById('add_code').value = code;
+    document.getElementById('add_code').readOnly = true;
+    document.getElementById('add_name').value = cleanText(p.name);
+    document.getElementById('add_spec').value = cleanText(p.specification);
+    document.getElementById('add_origin').value = cleanText(p.origin);
+    document.getElementById('add_cat_id').value = p.categoryId || '';
+    document.getElementById('add_stock').value = p.stock_quantity ?? p.stock ?? 0;
+    document.getElementById('add_price').value = p.price || 0;
+    document.getElementById('add_old_price').value = p.oldPrice || 0;
+    document.getElementById('add_discount').value = p.discountPercent || 0;
+    document.getElementById('add_description').value = p.description || '';
+    document.getElementById('add_image_res_id').value = p.imageResId || '';
+
+    const imgUrl = p.imageUrl || p.image_url || '';
+    document.getElementById('add_image_url').value = imgUrl;
+    document.getElementById('add_bestseller').checked = !!p.isBestSeller;
+    document.getElementById('add_promotion').checked = !!p.isPromotion;
+    updatePreview(imgUrl);
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('addProductModal')).show();
+}
+
+function updatePreview(url) {
+    const preview = document.getElementById('add_image_preview');
+    preview.src = url || '';
+    preview.classList.toggle('d-none', !url);
+}
+
+async function uploadImageFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+        const url = await uploadImage(file, `products/${editingCode || 'new'}`);
+        document.getElementById('add_image_url').value = url;
+        updatePreview(url);
+    } catch (error) { alert(error.message); }
+}
+
+async function uploadProductImage(event, code) {
+    const file = event.target.files[0];
+    if (!file || !allProducts[code]) return;
+    try {
+        const url = await uploadImage(file, `products/${code}`);
+        await db.ref('products/' + code).update({
+            imageUrl: url,
+            image_url: url
+        });
+        alert('Đã tải và lưu ảnh thực tế sản phẩm thành công lên Firebase!');
+    } catch (error) { alert('Không thể lưu ảnh sản phẩm: ' + error.message); }
+}
+
+async function saveProduct(e) {
+    e.preventDefault();
+    const code = document.getElementById('add_code').value.trim();
+    if (!code) return;
+
+    const imgUrl = document.getElementById('add_image_url').value.trim();
+
+    const pData = {
+        id: code,
+        name: cleanText(document.getElementById('add_name').value),
+        price: parseFloat(document.getElementById('add_price').value) || 0,
+        oldPrice: parseFloat(document.getElementById('add_old_price').value) || 0,
+        discountPercent: parseInt(document.getElementById('add_discount').value) || 0,
+        stock_quantity: parseInt(document.getElementById('add_stock').value) || 0,
+        categoryId: document.getElementById('add_cat_id').value,
+        specification: cleanText(document.getElementById('add_spec').value),
+        origin: cleanText(document.getElementById('add_origin').value),
+        description: cleanText(document.getElementById('add_description').value),
+        imageResId: parseInt(document.getElementById('add_image_res_id').value) || 0,
+        imageUrl: imgUrl,
+        image_url: imgUrl,
+        isBestSeller: document.getElementById('add_bestseller').checked,
+        isPromotion: document.getElementById('add_promotion').checked
+    };
+
+    await db.ref('products/' + code).set(pData).then(() => {
+        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+        document.getElementById('add_code').readOnly = false;
+        alert(editingCode ? 'Đã cập nhật sản phẩm và ảnh thành công!' : 'Đã thêm sản phẩm và ảnh thành công!');
+    });
+}
+
+function deleteProduct(code) {
+    if (confirm('Xóa sản phẩm ' + code + ' khỏi hệ thống?')) {
+        db.ref('products/' + code).remove().then(async () => {
+            await removeImage(allProducts[code]?.imageUrl);
+            alert('Đã xóa sản phẩm thành công!');
+        });
+    }
+}
+
+document.getElementById('add_image_url').addEventListener('input', event => updatePreview(event.target.value.trim()));
+
+// Sidebar & Mobile Drawer Toggle
+const toggleSidebar = () => document.body.classList.toggle('sidebar-open');
+document.getElementById('sidebarToggle')?.addEventListener('click', toggleSidebar);
+document.getElementById('mobileMenuBtn')?.addEventListener('click', toggleSidebar);
+document.getElementById('sidebarBackdrop')?.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
